@@ -3,6 +3,11 @@
 JavaScript library which performs bijective conversion mutually between the coordinate systems of two planes based on the control points.  
 This is part of [Maplat](https://github.com/code4nara/Maplat/wiki) project.
 
+# Important Notice - deprecated
+
+maplat_tin module is renamed as @maplat/tin.  
+Please use [@maplat/tin](https://www.npmjs.com/package/@maplat/tin) module instead.
+
 ## Installation
 
 ### node.js

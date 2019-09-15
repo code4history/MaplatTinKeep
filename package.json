@@ -1,5 +1,5 @@
 {
-  "name": "@maplat/tin",
+  "name": "maplat_tin",
   "version": "0.6.1",
   "description": "JavaScript library which performs bijective conversion mutually between the coordinate systems of two planes based on the control points.",
   "main": "lib/index.js",
