@@ -1,6 +1,6 @@
 {
-  "name": "maplat_tin",
-  "version": "0.6.0",
+  "name": "@maplat/tin",
+  "version": "0.6.1",
   "description": "JavaScript library which performs bijective conversion mutually between the coordinate systems of two planes based on the control points.",
   "main": "lib/index.js",
   "module": "src/index.js",
@@ -31,7 +31,8 @@
   },
   "homepage": "https://github.com/code4nara/MaplatTin/wiki",
   "dependencies": {
-    "@turf/turf": "^5.1.6"
+    "@turf/turf": "^5.1.6",
+    "mapshaper": "^0.4.130"
   },
   "devDependencies": {
     "@babel/cli": "^7.5.5",

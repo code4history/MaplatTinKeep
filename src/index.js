@@ -9,7 +9,7 @@ import centroid from '@turf/centroid';
 import lineIntersect from '@turf/line-intersect';
 import intersect from '@turf/intersect';
 
-import internal from './mapshaper-maplat';
+import { internal } from 'mapshaper';
 import constrainedTin from './constrained-tin';
 
 class Tin {

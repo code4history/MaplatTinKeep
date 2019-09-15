@@ -35,5 +35,8 @@ module.exports = {
         new webpack.BannerPlugin({
             banner: `${pjson.name} v${pjson.version} | ${pjson.author} | license: ${pjson.license}`
         })
-    ]
+    ],
+    node: {
+        fs: 'empty'
+    }
 };
