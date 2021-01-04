@@ -8,6 +8,10 @@ declare type Centroid = {
     forw: Feature<TurfPoint>;
     bakw: Feature<TurfPoint>;
 };
+declare type Tins = {
+    forw: FeatureCollection<Polygon>;
+    bakw?: FeatureCollection<Polygon>;
+};
 export interface Options {
     bounds: [number, number][];
     wh: [number, number];
@@ -47,7 +51,7 @@ declare class Tin {
     stateTriangle: any;
     strictMode: StrictMode;
     strict_status?: StrictStatus;
-    tins: any;
+    tins?: Tins;
     vertexMode?: VertexMode;
     vertices_params: any;
     wh?: [number, number];
@@ -59,7 +63,7 @@ declare class Tin {
     setEdges(edges: any): void;
     setBounds(bounds: [number, number][]): void;
     setCompiled(compiled: any): {
-        tins: any;
+        tins: Tins | undefined;
         strict_status: "strict" | "loose" | "strict_error" | undefined;
         weight_buffer: any;
         vertices_params: any;
