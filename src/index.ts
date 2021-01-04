@@ -9,6 +9,7 @@ import intersect from "@turf/intersect";
 import { getCoords } from "@turf/invariant";
 import lineIntersect from "@turf/line-intersect";
 import union from "@turf/union";
+import { Feature, Polygon, Point as TurfPoint, Position, FeatureCollection } from "@turf/turf";
 
 // declare module "./mapshaper-maplat" {
 //   function dedupIntersections(xy: any): any[];
@@ -22,9 +23,11 @@ import constrainedTin from "./constrained-tin";
 import internal from "./mapshaper-maplat";
 
 type VertexMode = "plain" | "birdeye";
-type StrictMode = "strict" | "auto";
+type StrictMode = "strict" | "auto" | "loose";
 type YaxisMode = "follow" | "invert";
+type StrictStatus = "strict" | "strict_error" | "loose";
 type Point = [[number, number], [number, number]];
+type Centroid = { forw: Feature<TurfPoint>, bakw: Feature<TurfPoint> };
 
 export interface Options {
   bounds: [number, number][];
@@ -50,28 +53,28 @@ class Tin {
   static STATUS_LOOSE = "loose" as const;
   static YAXIS_FOLLOW = "follow" as const;
   static YAXIS_INVERT = "invert" as const;
-  bounds: any;
-  boundsPolygon: any;
-  centroid: any;
+  bounds?: [number, number][];
+  boundsPolygon?: Feature<Polygon>;
+  centroid?: Centroid;
   edgeNodes: any;
   edges: any;
-  importance: any;
+  importance: number;
   indexedTins: any;
   kinks: any;
-  points: any;
+  points: Point[] = [];
   pointsWeightBuffer: any;
-  priority: any;
+  priority: number;
   stateBackward: any;
-  stateFull: any;
+  stateFull: boolean;
   stateTriangle: any;
-  strictMode: any;
-  strict_status: any;
+  strictMode: StrictMode;
+  strict_status?: StrictStatus;
   tins: any;
-  vertexMode: any;
+  vertexMode?: VertexMode;
   vertices_params: any;
-  wh: any;
-  xy: any;
-  yaxisMode: any;
+  wh?: [number, number];
+  xy?: [number, number];
+  yaxisMode: YaxisMode;
   pointsSet: any;
 
   constructor(options: Partial<Options> = {} as Options) {
@@ -85,7 +88,7 @@ class Tin {
     this.yaxisMode = options.yaxisMode || Tin.YAXIS_INVERT;
     this.importance = options.importance || 0;
     this.priority = options.priority || 0;
-    this.stateFull = options.stateFull;
+    this.stateFull = options.stateFull || false;
     if (options.points) {
       this.setPoints(options.points);
     }
@@ -110,7 +113,7 @@ class Tin {
     this.tins = undefined;
     this.indexedTins = undefined;
   }
-  setBounds(bounds: any) {
+  setBounds(bounds: [number, number][]) {
     this.bounds = bounds;
     let minx = bounds[0][0];
     let maxx = minx;
@@ -297,8 +300,8 @@ class Tin {
     (compiled as any).weight_buffer = this.pointsWeightBuffer;
     // centroidは座標の対応のみ保存
     (compiled as any).centroid_point = [
-      this.centroid.forw.geometry.coordinates,
-      this.centroid.forw.properties.target.geom
+      this.centroid?.forw.geometry?.coordinates,
+      this.centroid?.forw.properties?.target.geom
     ];
     // vertices_paramsの最初の値はそのまま保存
     (compiled as any).vertices_params = [
@@ -797,19 +800,19 @@ class Tin {
   }
   updateTinAsync() {
     let strict = this.strictMode;
-    const minx = this.xy[0] - 0.05 * this.wh[0];
-    const maxx = this.xy[0] + 1.05 * this.wh[0];
-    const miny = this.xy[1] - 0.05 * this.wh[1];
-    const maxy = this.xy[1] + 1.05 * this.wh[1];
+    const minx = (this.xy as number[])[0] - 0.05 * (this.wh as number[])[0];
+    const maxx = (this.xy as number[])[0] + 1.05 * (this.wh as number[])[0];
+    const miny = (this.xy as number[])[1] - 0.05 * (this.wh as number[])[1];
+    const maxy = (this.xy as number[])[1] + 1.05 * (this.wh as number[])[1];
     const insideCheck = this.bounds
-      ? (xy: any) => booleanPointInPolygon(xy, this.boundsPolygon)
-      : (xy: any) =>
-          xy[0] >= this.xy[0] &&
-          xy[0] <= this.xy[0] + this.wh[0] &&
-          xy[1] >= this.xy[1] &&
-          xy[1] <= this.xy[1] + this.wh[1];
+      ? (xy: number[]) => booleanPointInPolygon(xy, this.boundsPolygon as Feature<Polygon>)
+      : (xy: number[]) =>
+          xy[0] >= (this.xy as number[])[0] &&
+          xy[0] <= (this.xy as number[])[0] + (this.wh as number[])[0] &&
+          xy[1] >= (this.xy as number[])[1] &&
+          xy[1] <= (this.xy as number[])[1] + (this.wh as number[])[1];
     const inside = this.points.reduce(
-      (prev: any, curr: any) => prev && insideCheck(curr[0]),
+      (prev: boolean, curr: Point) => prev && insideCheck(curr[0]),
       true
     );
     if (!inside) {
@@ -838,22 +841,22 @@ class Tin {
         return Promise.all([
           new Promise(resolve => {
             resolve(constrainedTin(pointsSet.forw, pointsSet.edges, "target"));
-          }),
+          }) as Promise<FeatureCollection<Polygon>>,
           new Promise(resolve => {
             resolve(constrainedTin(pointsSet.bakw, pointsSet.edges, "target"));
-          }),
+          }) as Promise<FeatureCollection<Polygon>>,
           new Promise(resolve => {
             resolve(centroid(pointsSet.forw));
-          }),
+          }) as Promise<Feature<TurfPoint>>,
           Promise.resolve(prevResults)
         ]).catch(err => {
           throw err;
         });
       })
       .then(prevResults => {
-        const tinForCentroid: any = prevResults[0];
-        const tinBakCentroid: any = prevResults[1];
-        const forCentroidFt: any = prevResults[2];
+        const tinForCentroid = prevResults[0];
+        const tinBakCentroid = prevResults[1];
+        const forCentroidFt = prevResults[2];
         const pointsSetBbox: any = prevResults[3];
         const pointsSet: any = pointsSetBbox[0];
         if (
@@ -862,12 +865,15 @@ class Tin {
         )
           throw "TOO LINEAR1";
         // Calcurating Forward/Backward Centroid
-        const centroid = { forw: forCentroidFt.geometry.coordinates };
-        (centroid as any).bakw = transformArr(forCentroidFt, tinForCentroid);
+
+        const forwCoord = forCentroidFt.geometry?.coordinates as Position;
+        const bakwCoord = transformArr(forCentroidFt, tinForCentroid);
+        const forwPoint = createPoint(forwCoord, bakwCoord, "cent");
+        const bakwPoint = counterPoint(forwPoint);
         this.centroid = {
-          forw: createPoint(centroid.forw, (centroid as any).bakw, "cent")
+          forw: forwPoint,
+          bakw: bakwPoint
         };
-        this.centroid.bakw = counterPoint(this.centroid.forw);
         const convexBuf: any = {};
         return Promise.all([
           new Promise(resolve => {
@@ -1156,8 +1162,8 @@ class Tin {
               this.strict_status = Tin.STATUS_LOOSE;
             }
             this.vertices_params = {
-              forw: vertexCalc(verticesList.forw, this.centroid.forw),
-              bakw: vertexCalc(verticesList.bakw, this.centroid.bakw)
+              forw: vertexCalc(verticesList.forw, this.centroid?.forw),
+              bakw: vertexCalc(verticesList.bakw, this.centroid?.bakw)
             };
             this.addIndexedTin();
             return this.calculatePointsWeightAsync();
@@ -1171,7 +1177,7 @@ class Tin {
       });
   }
   transform(apoint: [any, any], backward?: boolean, ignoreBounds?: boolean) {
-    if (backward && this.strict_status == Tin.STATUS_ERROR)
+    if (backward && this.strict_status === Tin.STATUS_ERROR)
       throw 'Backward transform is not allowed if strict_status == "strict_error"';
     // if (!this.tins) this.updateTin();
     if (this.yaxisMode == Tin.YAXIS_FOLLOW && backward) {
@@ -1179,7 +1185,7 @@ class Tin {
     }
     const tpoint = point(apoint);
     if (this.bounds && !backward && !ignoreBounds) {
-      if (!booleanPointInPolygon(tpoint, this.boundsPolygon)) return false;
+      if (!booleanPointInPolygon(tpoint, this.boundsPolygon as Feature<Polygon>)) return false;
     }
     const tins = backward ? this.tins.bakw : this.tins.forw;
     const indexedTins = backward
@@ -1188,7 +1194,7 @@ class Tin {
     const verticesParams = backward
       ? this.vertices_params.bakw
       : this.vertices_params.forw;
-    const centroid = backward ? this.centroid.bakw : this.centroid.forw;
+    const centroid = backward ? this.centroid?.bakw : this.centroid?.forw;
     const weightBuffer = backward
       ? this.pointsWeightBuffer.bakw
       : this.pointsWeightBuffer.forw;
@@ -1201,7 +1207,7 @@ class Tin {
         this.stateBackward = backward;
         this.stateTriangle = undefined;
       }
-      stateSetFunc = (tri: any) => {
+      stateSetFunc = (tri?: Feature<Polygon>) => {
         this.stateTriangle = tri;
       };
     }
@@ -1217,7 +1223,7 @@ class Tin {
     );
     if (this.bounds && backward && !ignoreBounds) {
       const rpoint = point(ret);
-      if (!booleanPointInPolygon(rpoint, this.boundsPolygon)) return false;
+      if (!booleanPointInPolygon(rpoint, this.boundsPolygon as Feature<Polygon>)) return false;
     } else if (this.yaxisMode == Tin.YAXIS_FOLLOW && !backward) {
       ret = [ret[0], -1 * ret[1]];
     }
@@ -1458,14 +1464,14 @@ function decideUseVertex(radian: any, radianList: any) {
   }
   return minIndex;
 }
-function createPoint(xy: any, geom: any, index: any) {
+function createPoint(xy: Position, geom: Position, index: string | number) {
   return point(xy, { target: { geom, index } });
 }
-function counterPoint(apoint: any) {
-  return point(apoint.properties.target.geom, {
+function counterPoint(apoint: Feature<TurfPoint>) {
+  return point(apoint.properties?.target.geom, {
     target: {
-      geom: apoint.geometry.coordinates,
-      index: apoint.properties.target.index
+      geom: apoint.geometry?.coordinates,
+      index: apoint.properties?.target.index
     }
   });
 }
@@ -1475,7 +1481,7 @@ function transformTin(of: any, tri: any, weightBuffer: any) {
   return point(transformTinArr(of, tri, weightBuffer));
 }
 
-function transformTinArr(of: any, tri: any, weightBuffer: any) {
+function transformTinArr(of: any, tri: any, weightBuffer: any): Position {
   const a = tri.geometry.coordinates[0][0];
   const b = tri.geometry.coordinates[0][1];
   const c = tri.geometry.coordinates[0][2];
@@ -1528,7 +1534,7 @@ function useVerticesArr(
   verticesParams: [any, any[]],
   centroid: any,
   weightBuffer: any
-) {
+): Position {
   const coord = o.geometry.coordinates;
   const centCoord = centroid.geometry.coordinates;
   const radian = Math.atan2(coord[0] - centCoord[0], coord[1] - centCoord[1]);
@@ -1536,7 +1542,7 @@ function useVerticesArr(
   const tin = verticesParams[1][index as any];
   return transformTinArr(o, tin.features[0], weightBuffer);
 }
-function hit(point: any, tins: any) {
+function hit(point: Feature<TurfPoint>, tins: FeatureCollection<Polygon>) {
   for (let i = 0; i < tins.features.length; i++) {
     const inside = booleanPointInPolygon(point, tins.features[i]);
     if (inside) {
@@ -1552,18 +1558,18 @@ function unitCalc(coord: any, origin: any, unit: any, gridNum: any) {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 function transform(
-  point: any,
-  tins: any,
+  point_a: Feature<TurfPoint>,
+  tins: FeatureCollection<Polygon>,
   indexedTins: any = undefined,
   verticesParams: any = undefined,
   centroid: any = undefined,
   weightBuffer: any = undefined,
-  stateTriangle: any = undefined,
-  stateSetFunc: any = undefined
+  stateTriangle?: Feature<Polygon>,
+  stateSetFunc?: (tin?: Feature<Polygon>) => void
 ) {
   return point(
     transformArr(
-      point,
+      point_a,
       tins,
       indexedTins,
       verticesParams,
@@ -1575,36 +1581,36 @@ function transform(
   );
 }
 function transformArr(
-  point: any,
-  tins: any,
+  point: Feature<TurfPoint>,
+  tins: FeatureCollection<Polygon>,
   indexedTins: any = undefined,
   verticesParams: any = undefined,
   centroid: any = undefined,
   weightBuffer: any = undefined,
-  stateTriangle: any = undefined,
-  stateSetFunc: any = undefined
-) {
+  stateTriangle?: Feature<Polygon>,
+  stateSetFunc?: (tin?: Feature<Polygon>) => void
+): Position {
   let tin;
   if (stateTriangle) {
-    tin = hit(point, { features: [stateTriangle] });
+    tin = hit(point, featureCollection([stateTriangle]));
   }
   if (!tin) {
     if (indexedTins) {
-      const coords = point.geometry.coordinates;
+      const coords = point.geometry?.coordinates;
       const gridNum = indexedTins.gridNum;
       const xOrigin = indexedTins.xOrigin;
       const yOrigin = indexedTins.yOrigin;
       const xUnit = indexedTins.xUnit;
       const yUnit = indexedTins.yUnit;
       const gridCache = indexedTins.gridCache;
-      const normX = unitCalc(coords[0], xOrigin, xUnit, gridNum);
-      const normY = unitCalc(coords[1], yOrigin, yUnit, gridNum);
-      const tinsKey = gridCache[normX]
+      const normX = unitCalc((coords as Position)[0], xOrigin, xUnit, gridNum);
+      const normY = unitCalc((coords as Position)[1], yOrigin, yUnit, gridNum);
+      const tinsKey: number[] = gridCache[normX]
         ? gridCache[normX][normY]
           ? gridCache[normX][normY]
           : []
         : [];
-      tins = { features: tinsKey.map((key: any) => tins.features[key]) };
+      tins = featureCollection(tinsKey.map((key: number) => tins.features[key]));
     }
     tin = hit(point, tins);
   }
