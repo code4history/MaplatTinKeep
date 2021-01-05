@@ -2,10 +2,34 @@ var Tin = require('../src/index');
 var testHelper = require('./TestHelper');
 var load_map = require('./maps/fushimijo_maplat.json');
 var load_cmp = require('./compiled/fushimijo_maplat.json');
+var load_m_nara = require('./maps/naramachi_yasui_bunko.json');
+var load_c_nara = require('./compiled/naramachi_yasui_bunko.json');
+var fs = require('fs');
 
 let stateFull = false;
 const testSet = function() {
-  describe('実データテスト', function() {
+  describe('実データテスト (Nara)', function() {
+    var tin = new Tin({
+      wh: [load_m_nara.width, load_m_nara.height],
+      strictMode: load_m_nara.strictMode,
+      vertexMode: load_m_nara.vertexMode,
+      stateFull
+    });
+    tin.setPoints(load_m_nara.gcps);
+    tin.setEdges(load_m_nara.edges);
+
+    it('実データ比較 (Nara)', testHelper.helperAsync(async function() {
+      await tin.updateTinAsync();
+      const target = JSON.parse(JSON.stringify(load_c_nara));
+      expect(tin.getCompiled()).not.toEqual(target.compiled);
+      target.compiled.wh = tin.wh;
+      expect(JSON.parse(JSON.stringify(tin.getCompiled()))).toEqual(target.compiled);
+      fs.writeFileSync('./t_compiled.json', JSON.stringify(target.compiled, null, 2));
+      fs.writeFileSync('./e_compiled.json', JSON.stringify(tin.getCompiled(), null, 2));
+    }));
+  });
+
+  describe('実データテスト (Fushimi)', function() {
     var tin = new Tin({
       wh: [load_map.width, load_map.height],
       strictMode: load_map.strictMode,
@@ -14,7 +38,7 @@ const testSet = function() {
     });
     tin.setPoints(load_map.gcps);
 
-    it('実データ比較', testHelper.helperAsync(async function() {
+    it('実データ比較 (Fushimi)', testHelper.helperAsync(async function() {
       await tin.updateTinAsync();
       const target = JSON.parse(JSON.stringify(load_cmp));
       expect(tin.getCompiled()).not.toEqual(target.compiled);
@@ -22,6 +46,7 @@ const testSet = function() {
       expect(tin.getCompiled()).toEqual(target.compiled);
     }));
   });
+
 
   describe('boundsケーステスト(エラーなし)', function() {
     beforeEach(function () {
