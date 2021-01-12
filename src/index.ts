@@ -58,6 +58,7 @@ type Tins = FeatureCollection<Polygon, PropertiesTri>;
 type TinsBD = { [key in BiDirectionKey]?: Tins };
 type SearchTris = { [key in BiDirectionKey]: Tri };
 type SearchIndex = { [key: string]: SearchTris[] };
+type RoundSetting = { [key in BiDirectionKey]?: number };
 
 interface IndexedTins {
   gridNum: number;
@@ -80,6 +81,7 @@ export interface Options {
   stateFull: boolean;
   points: PointSet[];
   edges: Edge[];
+  roundSetting?: RoundSetting;
 }
 
 export interface Compiled {
@@ -88,7 +90,7 @@ export interface Compiled {
   tins_points: (number | string)[][][];
   weight_buffer: WeightBufferBD;
   strict_status?: StrictStatus;
-  centroid_point: Position[];
+  centroid_point: PointSet;
   edgeNodes?: PointSet[];
   kinks_points?: Position[];
   yaxisMode?: YaxisMode;
@@ -146,6 +148,7 @@ class Tin {
   xy?: number[];
   yaxisMode: YaxisMode;
   pointsSet: any;
+  roundSetting?: RoundSetting;
 
   constructor(options: Partial<Options> = {} as Options) {
     if (options.bounds) {
@@ -159,6 +162,7 @@ class Tin {
     this.importance = options.importance || 0;
     this.priority = options.priority || 0;
     this.stateFull = options.stateFull || false;
+    this.roundSetting = options.roundSetting;
     if (options.points) {
       this.setPoints(options.points);
     }
@@ -173,12 +177,12 @@ class Tin {
     if (this.yaxisMode == Tin.YAXIS_FOLLOW) {
       points = points.map(point => [point[0], [point[1][0], -1 * point[1][1]]]);
     }
-    this.points = points;
+    this.points = normalizePointSets(points, this.roundSetting);
     this.tins = undefined;
     this.indexedTins = undefined;
   }
   setEdges(edges: Edge[] | EdgeLegacy[] = []) {
-    this.edges = normalizeEdges(edges);
+    this.edges = normalizeEdges(edges, this.roundSetting);
     this.edgeNodes = undefined;
     this.tins = undefined;
     this.indexedTins = undefined;
@@ -209,16 +213,23 @@ class Tin {
   setCompiled(compiled: LegacyCompiled) {
     if (compiled.version || (!compiled.tins && compiled.points && compiled.tins_points)) {
       // 新コンパイルロジック
+      // Since 0.7.3, coordinate params are rounded according to roundSetting
+      const points = normalizePointSets(compiled.points, this.roundSetting);
+      const vertices_points = normalizePointSets(compiled.vertices_points, this.roundSetting);
+      const centroid_point = normalizePointSet(compiled.centroid_point, this.roundSetting);
+      const edgeNodes = normalizePointSets(compiled.edgeNodes || [], this.roundSetting);
+
       // pointsはそのままpoints
-      this.points = compiled.points;
-      // After 0.7.3 Normalizing old formats for weightBuffer
+      this.points = points;
+      // Since 0.7.3 Normalizing old formats for weightBuffer
       this.pointsWeightBuffer = (!compiled.version || compiled.version < 2.00703) ?
         (["forw", "bakw"] as BiDirectionKey[]).reduce((bd, forb) => {
           const base = compiled.weight_buffer[forb];
           if (base) {
             bd[forb] = Object.keys(base!).reduce((buffer, key) => {
               const normKey = normalizeNodeKey(key);
-              buffer[normKey] = base![key];
+              // Since 0.7.3: WeightBuffers are rounded
+              buffer[normKey] = normalizeCoord(base![key], 1);
               return buffer;
             }, {} as WeightBuffer);
           }
@@ -243,10 +254,10 @@ class Tin {
         const idxNxt = (idx + 1) % 4;
         const tri = indexesToTri(
           ["c", `b${idx}`, `b${idxNxt}`],
-          compiled.points,
-          compiled.edgeNodes || [],
-          compiled.centroid_point,
-          compiled.vertices_points,
+          points,
+          edgeNodes,
+          centroid_point,
+          vertices_points,
           false,
           format_version
         );
@@ -256,10 +267,10 @@ class Tin {
         const idxNxt = (idx + 1) % 4;
         const tri = indexesToTri(
           ["c", `b${idx}`, `b${idxNxt}`],
-          compiled.points,
-          compiled.edgeNodes || [],
-          compiled.centroid_point,
-          compiled.vertices_points,
+          points,
+          edgeNodes,
+          centroid_point,
+          vertices_points,
           true,
           format_version
         );
@@ -267,22 +278,22 @@ class Tin {
       });
       // centroidを復元
       this.centroid = {
-        forw: point(compiled.centroid_point[0], {
+        forw: point(centroid_point[0], {
           target: {
-            geom: compiled.centroid_point[1],
+            geom: centroid_point[1],
             index: "c"
           }
         }),
-        bakw: point(compiled.centroid_point[1], {
+        bakw: point(centroid_point[1], {
           target: {
-            geom: compiled.centroid_point[0],
+            geom: centroid_point[0],
             index: "c"
           }
         })
       };
       // edgesを復元
-      this.edges = normalizeEdges(compiled.edges || []);
-      this.edgeNodes = compiled.edgeNodes || [];
+      this.edges = normalizeEdges(compiled.edges || [], this.roundSetting, compiled.version);
+      this.edgeNodes = edgeNodes;
       // tinsを復元
       const bakwI = compiled.tins_points.length == 1 ? 0 : 1;
       this.tins = {
@@ -290,10 +301,10 @@ class Tin {
           compiled.tins_points[0].map((idxes: any) =>
             indexesToTri(
               idxes,
-              compiled.points,
-              compiled.edgeNodes || [],
-              compiled.centroid_point,
-              compiled.vertices_points,
+              points,
+              edgeNodes,
+              centroid_point,
+              vertices_points,
               false,
               compiled.version
             )
@@ -303,10 +314,10 @@ class Tin {
           compiled.tins_points[bakwI].map((idxes: any) =>
             indexesToTri(
               idxes,
-              compiled.points,
-              compiled.edgeNodes || [],
-              compiled.centroid_point,
-              compiled.vertices_points,
+              points,
+              edgeNodes,
+              centroid_point,
+              vertices_points,
               true,
               compiled.version
             )
@@ -318,7 +329,7 @@ class Tin {
       if (compiled.kinks_points) {
         this.kinks = {
           bakw: featureCollection(
-            compiled.kinks_points.map((coord: Position) => point(coord))
+            normalizePoints(compiled.kinks_points, this.roundSetting ? this.roundSetting.bakw : undefined).map((coord: Position) => point(coord))
           )
         };
       }
@@ -1405,7 +1416,14 @@ class Tin {
             pointsWeightBuffer["bakw"]!["c"] =
               1 / pointsWeightBuffer[target]!["c"];
         });
-        this.pointsWeightBuffer = pointsWeightBuffer;
+        this.pointsWeightBuffer = (["forw", "bakw"] as BiDirectionKey[]).reduce((bd: WeightBufferBD, target: BiDirectionKey) => {
+          bd[target] = Object.keys(pointsWeightBuffer[target]!).reduce((buffer: WeightBuffer, key: string) => {
+            // Since 0.7.3: WeightBuffers are rounded
+            buffer[key] = normalizeCoord(pointsWeightBuffer[target]![key], 1);
+            return buffer;
+          }, {})
+          return bd;
+        }, {});
       })
       .catch(err => {
         throw err;
@@ -1782,17 +1800,6 @@ function indexesToTri(
   return buildTri(points_);
 }
 
-// After 7.0.3 Normalizing node index key
-function normalizeNodeKey(index: number | string) {
-  if (typeof index === "number") return index;
-  return index.replace(/^(c|e|b)(?:ent|dgeNode|box)(\d+)?$/, "$1$2");
-}
-
-function normalizeEdges(edges: Edge[] | EdgeLegacy[], version?: number): Edge[] {
-  if ((version && version >= 2.00703) || Array.isArray(edges[0])) return edges as Edge[];
-  return (edges as EdgeLegacy[]).map(edge => [edge.illstNodes, edge.mercNodes, edge.startEnd]);
-}
-
 function overlapCheckAsync(searchIndex: SearchIndex) {
   const retValue = { forw: {} as any, bakw: {} as any };
   return Promise.all(
@@ -1876,6 +1883,63 @@ function removeSearchIndex(
     );
     tins.bakw!.features = newArray;
   }
+}
+
+// After 7.0.3 Normalizing node index key
+function normalizeNodeKey(index: number | string) {
+  if (typeof index === "number") return index;
+  return index.replace(/^([ceb])(?:ent|dgeNode|box)(\d+)?$/, "$1$2");
+}
+
+function normalizeEdges(edges: Edge[] | EdgeLegacy[], roundSetting?: RoundSetting, version?: number): Edge[] {
+  if (!((version && version >= 2.00703) || Array.isArray(edges[0])))
+    edges = (edges as EdgeLegacy[]).map(edge => [edge.illstNodes, edge.mercNodes, edge.startEnd]);
+  if (roundSetting)
+    edges = (edges as Edge[]).map(edge => {
+      if (roundSetting.forw) edge[0] = normalizePoints(edge[0], roundSetting.forw);
+      if (roundSetting.bakw) edge[1] = normalizePoints(edge[1], roundSetting.bakw);
+      return edge;
+    });
+  return edges as Edge[];
+}
+
+function normalizePointSets(points: PointSet[], roundSetting?: RoundSetting): PointSet[] {
+  if (!roundSetting) return points;
+  return points.map(pointSet => {
+    if (roundSetting.forw) {
+      pointSet[0] = normalizePoint(pointSet[0], roundSetting.forw);
+    }
+    if (roundSetting.bakw) {
+      pointSet[1] = normalizePoint(pointSet[1], roundSetting.bakw);
+    }
+    return pointSet;
+  });
+}
+
+function normalizePointSet(pointSet: PointSet, roundSetting?: RoundSetting): PointSet {
+  if (!roundSetting) return pointSet;
+  if (roundSetting.forw) {
+    pointSet[0] = normalizePoint(pointSet[0], roundSetting.forw);
+  }
+  if (roundSetting.bakw) {
+    pointSet[1] = normalizePoint(pointSet[1], roundSetting.bakw);
+  }
+  return pointSet;
+}
+
+function normalizePoints(points: Position[], roundSetting?: number): Position[] {
+  if (!roundSetting) return points;
+  return points.map(point => normalizePoint(point, roundSetting));
+}
+
+function normalizePoint(point: Position, roundSetting?: number): Position {
+  if (!roundSetting) return point;
+  return point.map( coord => normalizeCoord(coord, roundSetting));
+}
+
+function normalizeCoord(coord: number, roundSetting?: number): number {
+  if (!roundSetting) return coord;
+  return Math.round(coord * Math.pow(10, roundSetting)) / Math.pow(10, roundSetting);
 }
 
 function calcSearchKeys(tri: Tri): string[] {
