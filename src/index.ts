@@ -18,7 +18,7 @@ import {
   MultiPolygon,
   Properties
 } from "@turf/turf";
-import kinks from "@turf/kinks";
+import kinks from "./kinks";
 
 const format_version = 2.00703; //(Version 2 format for library version 0.7.3)
 
@@ -757,7 +757,7 @@ class Tin {
               const multi = multiPolygon(this.tins![direc]!.features.map(tri => tri.geometry!.coordinates));
               const ks = kinks(multi.geometry!);
               const retXy = ks.features.reduce((prev: any, apoint, index, array) => {
-                prev[`${apoint.geometry.coordinates[0]}:${apoint.geometry.coordinates[1]}`] = apoint;
+                prev[`${apoint.geometry!.coordinates[0]}:${apoint.geometry!.coordinates[1]}`] = apoint;
                 if (index != array.length - 1) return prev;
                 return Object.keys(prev).map(key => prev[key]);
               }, {});
