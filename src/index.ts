@@ -4,7 +4,7 @@ import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
 import centroid from "@turf/centroid";
 import convex from "@turf/convex";
 import difference from "@turf/difference";
-import { featureCollection, lineString, point, polygon } from "@turf/helpers";
+import { featureCollection, lineString, point, polygon, multiPolygon } from "@turf/helpers";
 import intersect from "@turf/intersect";
 import { getCoords } from "@turf/invariant";
 import lineIntersect from "@turf/line-intersect";
@@ -14,8 +14,11 @@ import {
   FeatureCollection,
   Polygon,
   Point,
-  Position
+  Position,
+  MultiPolygon,
+  Properties
 } from "@turf/turf";
+import kinks from "@turf/kinks";
 
 const format_version = 2.00703; //(Version 2 format for library version 0.7.3)
 
@@ -735,7 +738,7 @@ class Tin {
         return Promise.all(
           (["forw", "bakw"] as BiDirectionKey[]).map(direc =>
             new Promise(resolve => {
-              const coords = this.tins![direc]!.features.map(
+              /*const coords = this.tins![direc]!.features.map(
                 (poly: any) => poly.geometry.coordinates[0]
               );
               const xy = findIntersections(coords);
@@ -750,6 +753,14 @@ class Tin {
                     point([prev[key].x, prev[key].y])
                   );
                 }, []);
+              resolve(retXy);*/
+              const multi = multiPolygon(this.tins![direc]!.features.map(tri => tri.geometry!.coordinates));
+              const ks = kinks(multi.geometry!);
+              const retXy = ks.features.reduce((prev: any, apoint, index, array) => {
+                prev[`${apoint.geometry.coordinates[0]}:${apoint.geometry.coordinates[1]}`] = apoint;
+                if (index != array.length - 1) return prev;
+                return Object.keys(prev).map(key => prev[key]);
+              }, {});
               resolve(retXy);
             }).catch(err => {
               throw err;

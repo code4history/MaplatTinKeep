@@ -1,4 +1,4 @@
-import { Feature, FeatureCollection, Polygon, Point, Position } from "@turf/turf";
+import { Feature, FeatureCollection, Polygon, Point, Position, Properties } from "@turf/turf";
 export declare type VertexMode = "plain" | "birdeye";
 export declare type StrictMode = "strict" | "auto" | "loose";
 export declare type StrictStatus = "strict" | "strict_error" | "loose";
@@ -146,8 +146,8 @@ declare class Tin {
     setStrictMode(mode: StrictMode): void;
     calcurateStrictTinAsync(): Promise<void>;
     generatePointsSet(): {
-        forw: FeatureCollection<import("@turf/helpers").Geometry, import("@turf/helpers").Properties>;
-        bakw: FeatureCollection<import("@turf/helpers").Geometry, import("@turf/helpers").Properties>;
+        forw: FeatureCollection<import("@turf/helpers").Geometry, Properties>;
+        bakw: FeatureCollection<import("@turf/helpers").Geometry, Properties>;
         edges: number[][];
     };
     updateTinAsync(): Promise<unknown>;
