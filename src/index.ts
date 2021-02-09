@@ -4,7 +4,7 @@ import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
 import centroid from "@turf/centroid";
 import convex from "@turf/convex";
 import difference from "@turf/difference";
-import { featureCollection, lineString, point, polygon, multiPolygon } from "@turf/helpers";
+import { featureCollection, lineString, point, polygon, multiPolygon, multiLineString } from "@turf/helpers";
 import intersect from "@turf/intersect";
 import { getCoords } from "@turf/invariant";
 import lineIntersect from "@turf/line-intersect";
@@ -754,7 +754,14 @@ class Tin {
                   );
                 }, []);
               resolve(retXy);*/
-              const multi = multiPolygon(this.tins![direc]!.features.map(tri => tri.geometry!.coordinates));
+              //const multi = multiPolygon(this.tins![direc]!.features.map(tri => tri.geometry!.coordinates));
+              const multi = multiLineString(this.tins![direc]!.features.reduce((prev: Position[][], tri) => {
+                const geomCoords = tri.geometry!.coordinates;
+                [0, 1, 2].forEach(i => {
+                  prev.push([geomCoords[0][i], geomCoords[0][i+1]]);
+                });
+                return prev;
+              }, [] as Position[][]));
               const ks = kinks(multi.geometry!);
               const retXy = ks.features.reduce((prev: any, apoint, index, array) => {
                 prev[`${apoint.geometry!.coordinates[0]}:${apoint.geometry!.coordinates[1]}`] = apoint;
