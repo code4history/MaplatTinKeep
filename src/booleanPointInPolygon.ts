@@ -8,7 +8,7 @@ import {
 } from "@turf/helpers";
 import { getCoord, getGeom } from "@turf/invariant";
 // tslint:disable-next-line:no-var-requires
-const pointInPolygon = require("point-in-polygon-hao").default;
+const pointInPolygon = require("point-in-polygon-hao");
 
 // http://en.wikipedia.org/wiki/Even%E2%80%93odd_rule
 // modified from: https://github.com/substack/point-in-polygon/blob/master/index.js
@@ -74,23 +74,6 @@ export default function booleanPointInPolygon<
         // check if it is in the outer ring first
         const res = pointInPolygon(pt, polys[i]);
         if ((res === 0 && !options.ignoreBoundary) || res) insidePoly = true;
-
-
-
-        /*if (inRing(pt, polys[i][0], options.ignoreBoundary)) {
-            let inHole = false;
-            let k = 1;
-            // check for the point in any of the holes
-            while (k < polys[i].length && !inHole) {
-                if (inRing(pt, polys[i][k], !options.ignoreBoundary)) {
-                    inHole = true;
-                }
-                k++;
-            }
-            if (!inHole) {
-                insidePoly = true;
-            }
-        }*/
     }
     return insidePoly;
 }
