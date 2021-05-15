@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 "use strict";
-import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
+import booleanPointInPolygon from "./booleanPointInPolygon";
 import centroid from "@turf/centroid";
 import convex from "@turf/convex";
 import difference from "@turf/difference";

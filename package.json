@@ -40,7 +40,8 @@
   "dependencies": {
     "@turf/nearest-point-to-line": "^6.0.0",
     "@turf/point-to-line-distance": "^6.0.0",
-    "@turf/turf": "^5.1.6"
+    "@turf/turf": "^5.1.6",
+    "point-in-polygon-hao": "0.0.7"
   },
   "devDependencies": {
     "@babel/cli": "^7.12.10",
