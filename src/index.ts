@@ -105,16 +105,16 @@ interface CompiledLegacy extends Compiled {
 }
 
 class Tin {
-  static VERTEX_PLAIN = "plain" as const;
-  static VERTEX_BIRDEYE = "birdeye" as const;
-  static MODE_STRICT = "strict" as const;
-  static MODE_AUTO = "auto" as const;
-  static MODE_LOOSE = "loose" as const;
-  static STATUS_STRICT = "strict" as const;
-  static STATUS_ERROR = "strict_error" as const;
-  static STATUS_LOOSE = "loose" as const;
-  static YAXIS_FOLLOW = "follow" as const;
-  static YAXIS_INVERT = "invert" as const;
+  public static VERTEX_PLAIN = "plain" as const;
+  public static VERTEX_BIRDEYE = "birdeye" as const;
+  public static MODE_STRICT = "strict" as const;
+  public static MODE_AUTO = "auto" as const;
+  public static MODE_LOOSE = "loose" as const;
+  public static STATUS_STRICT = "strict" as const;
+  public static STATUS_ERROR = "strict_error" as const;
+  public static STATUS_LOOSE = "loose" as const;
+  public static YAXIS_FOLLOW = "follow" as const;
+  public static YAXIS_INVERT = "invert" as const;
   bounds?: number[][];
   boundsPolygon?: Feature<Polygon>;
   centroid?: CentroidBD;
@@ -1885,5 +1885,7 @@ function calcSearchKeys(tri: Tri): string[] {
     )
     .sort();
 }
+
+if (window) window.Tin = Tin;
 
 export default Tin;

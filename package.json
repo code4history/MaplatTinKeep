@@ -11,7 +11,7 @@
     "lib/"
   ],
   "scripts": {
-    "server": "webpack-dev-server --config webpack_config/webpack.config.devserver.js --mode=development --devtool=inline-source-map",
+    "server": "webpack-cli serve --config webpack_config/webpack.config.devserver.js --mode=development --devtool=inline-source-map",
     "build": "npm run build:es5 && npm run build:es6",
     "build:es5": "webpack --config webpack_config/webpack.config.product.js",
     "build:es6": "tsc",

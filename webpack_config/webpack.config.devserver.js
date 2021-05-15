@@ -17,7 +17,10 @@ module.exports = merge(common, {
   },
 
   plugins: [
-    new HtmlWebpackPlugin({ template: "./public/index.html" })
+    new HtmlWebpackPlugin({
+      template: "./public/index.html",
+      scriptLoading: "blocking"
+    })
   ],
 
 });
