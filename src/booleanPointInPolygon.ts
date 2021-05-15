@@ -8,7 +8,7 @@ import {
 } from "@turf/helpers";
 import { getCoord, getGeom } from "@turf/invariant";
 // tslint:disable-next-line:no-var-requires
-const pointInPolygon = require("point-in-polygon-hao");
+const pointInPolygon = require("point-in-polygon-hao").default;
 
 // http://en.wikipedia.org/wiki/Even%E2%80%93odd_rule
 // modified from: https://github.com/substack/point-in-polygon/blob/master/index.js
