@@ -1886,6 +1886,4 @@ function calcSearchKeys(tri: Tri): string[] {
     .sort();
 }
 
-if (window) window.Tin = Tin;
-
 export default Tin;

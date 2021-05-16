@@ -59,5 +59,9 @@ module.exports = {
     before(_app, _server, _compiler) {
       console.log(`Server running at http://localhost:${port}`);
     }
+  },
+
+  experiments: {
+    outputModule: true
   }
 };
