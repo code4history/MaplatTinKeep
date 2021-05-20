@@ -133,7 +133,7 @@ declare class Tin {
     setBounds(bounds: number[][]): void;
     setCompiled(compiled: Compiled | CompiledLegacy): {
         tins: TinsBD | undefined;
-        strict_status: "strict" | "loose" | "strict_error" | undefined;
+        strict_status: StrictStatus | undefined;
         weight_buffer: WeightBufferBD;
         vertices_params: VerticesParamsBD;
         centroid: CentroidBD | undefined;
