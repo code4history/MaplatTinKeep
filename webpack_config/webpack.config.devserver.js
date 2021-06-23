@@ -10,14 +10,15 @@ module.exports = merge(common, {
   output: {
     path: path.resolve(__dirname, "../dev"),
     filename: '[name].js',
-    library: 'Tin',
     libraryTarget: 'umd',
-    libraryExport: 'default',
     globalObject: 'this',
   },
 
   plugins: [
-    new HtmlWebpackPlugin({ template: "./public/index.html" })
+    new HtmlWebpackPlugin({
+      template: "./public/index.html",
+      scriptLoading: "blocking"
+    })
   ],
 
 });

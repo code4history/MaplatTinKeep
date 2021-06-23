@@ -104,7 +104,7 @@ interface CompiledLegacy extends Compiled {
   edges: Edge[] & EdgeLegacy[];
 }
 
-class Tin {
+export default class Tin {
   static VERTEX_PLAIN = "plain" as const;
   static VERTEX_BIRDEYE = "birdeye" as const;
   static MODE_STRICT = "strict" as const;
@@ -1886,4 +1886,5 @@ function calcSearchKeys(tri: Tri): string[] {
     .sort();
 }
 
-export default Tin;
+// @ts-ignore
+global.Tin = Tin;

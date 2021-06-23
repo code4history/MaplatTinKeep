@@ -92,7 +92,7 @@ interface CompiledLegacy extends Compiled {
     vertices_params: number[][] & VerticesParamsBD;
     edges: Edge[] & EdgeLegacy[];
 }
-declare class Tin {
+export default class Tin {
     static VERTEX_PLAIN: "plain";
     static VERTEX_BIRDEYE: "birdeye";
     static MODE_STRICT: "strict";
@@ -154,4 +154,4 @@ declare class Tin {
     transform(apoint: number[], backward?: boolean, ignoreBounds?: boolean): false | Position;
     calculatePointsWeightAsync(): Promise<void>;
 }
-export default Tin;
+export {};
