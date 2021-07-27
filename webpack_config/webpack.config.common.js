@@ -5,6 +5,9 @@ const path = require("path");
 const { BannerPlugin } = require("webpack");
 const pjson = require('../package.json');
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
+//const LicensePlugin = require('webpack-license-plugin');
+//const LicenseInfoWebpackPlugin = require('license-info-webpack-plugin').default;
+const LicenseWebpackPlugin = require('license-webpack-plugin').LicenseWebpackPlugin;
 
 const port = process.env.PORT || 8888;
 
@@ -35,6 +38,12 @@ module.exports = {
       banner: `${pjson.name} v${pjson.version} | ${pjson.author} | license: ${pjson.license}`
     }),
     new CleanWebpackPlugin(),
+  /*  new LicenseInfoWebpackPlugin({
+      glob: '{LICENSE,license,License}*',
+      outputType: 'html',
+      includeLicenseFile: false
+    })*/
+    new LicenseWebpackPlugin()
   ],
 
   devServer: {
