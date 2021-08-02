@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-var-requires */
-const Tin = require('../es5').default;
+const Tin = require("../es5").default;
 const { toBeDeepCloseTo } = require("jest-matcher-deep-close-to");
 expect.extend({ toBeDeepCloseTo });
 
@@ -290,11 +290,11 @@ function sortTinsPoint(tins_points) {
 }
 
 function sortKinksPoint(kinks_points) {
-  return (treeWalk(kinks_points, 5)).sort((a, b) =>
+  return treeWalk(kinks_points, 5).sort((a, b) =>
     a[0] === b[0]
       ? a[1] === b[1]
-      ? 0
-      : a[1] > b[1]
+        ? 0
+        : a[1] > b[1]
         ? 1
         : -1
       : a[0] > b[0]
