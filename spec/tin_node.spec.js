@@ -2,8 +2,6 @@ const Tin = require('../es5').default;
 const { toBeDeepCloseTo } = require("jest-matcher-deep-close-to");
 expect.extend({ toBeDeepCloseTo });
 
-console.log(Tin);
-
 let stateFull = false;
 const testSet = () => {
   [
