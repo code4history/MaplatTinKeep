@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+/* eslint-disable @typescript-eslint/no-var-requires */
 const Tin = require('../es5').default;
 const { toBeDeepCloseTo } = require("jest-matcher-deep-close-to");
 expect.extend({ toBeDeepCloseTo });
